@@ -73,7 +73,7 @@ namespace Business.Concrete
             return new SuccessResult(Messages.BranchDeleted);
         }
 
-        //[CacheAspect]
+        [CacheAspect]
         public IDataResult<List<BranchResponseDto>> GetAll()
         {
             List<IResult> result = BusinessRules.Check();

@@ -82,6 +82,13 @@ namespace Business.Concrete
 
         }
 
+        [CacheAspect]
+        public IDataResult<List<Category>> GetAllByIds(List<int> ids)
+        {
+            return new SuccessDataResult<List<Category>>(_categoryDal.GetAllAndDepends(includeProperties: "Products").FindAll(c => ids.Contains(c.Id)));
+
+        }
+
         public IDataResult<CategoryResponseDto> GetById(int categoryId)
         {
             return new SuccessDataResult<CategoryResponseDto>(CategoryResponseDto.Generate(_categoryDal.Get(c => c.Id == categoryId)), Messages.CategoryListed);

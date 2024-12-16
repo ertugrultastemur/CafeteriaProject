@@ -16,7 +16,13 @@ namespace Business.Abstract
 
         IDataResult<TokenResponseDto> Login(SignInDto signInDto);
 
-        IResult UserExists(string email);
+        IResult AddOperationClaim(OperationClaimDto operationClaimDto);
+
+        IDataResult<UserResponseDto> UpdateUserRoles(OperationClaimDto operationClaimDto);
+
+        IResult CheckIfUserExists(string email);
+
+        IResult CheckIfOperationClaimAlreadyExists(OperationClaimDto operationClaimDto);
 
         IDataResult<AccessToken> CreateAccessToken(User user);
 

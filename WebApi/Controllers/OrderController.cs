@@ -41,6 +41,8 @@ namespace WebApi.Controllers
         [HttpPost("add")]
         public ActionResult Add(OrderRequestDto orderRequestDto)
         {
+            if (orderRequestDto == null )
+                return BadRequest("Invalid input.");
             var result = _orderService.Add(orderRequestDto);
             if (result.IsSuccess)
             {

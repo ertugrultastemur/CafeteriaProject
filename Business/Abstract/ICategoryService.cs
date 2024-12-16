@@ -15,6 +15,8 @@ namespace Business.Abstract
 
         IDataResult<CategoryResponseDto> GetById(int categoryId);
 
+        IDataResult<List<Category>> GetAllByIds(List<int> ids);
+
         IDataResult<CategoryResponseDto> Update(CategoryRequestDto categoryRequestDto);
 
         IResult Add(CategoryRequestDto categoryResponseDto);

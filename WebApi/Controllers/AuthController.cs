@@ -38,7 +38,7 @@ namespace WebApi.Controllers
         [HttpPost("register")]
         public ActionResult Register(SignUpDto signUpDto)
         {
-            var userExists = _authService.UserExists(signUpDto.Email);
+            var userExists = _authService.CheckIfUserExists(signUpDto.Email);
             if (!userExists.IsSuccess)
             {
                 return BadRequest(userExists.Message);
@@ -52,7 +52,7 @@ namespace WebApi.Controllers
             return BadRequest(result.Message);
         }
 
-        [HttpGet("refresh")]
+        [HttpPost("refresh")]
         public ActionResult Refresh([FromBody]TokenResponseDto login)
         {
             var result = _authService.Refresh(login);
@@ -63,6 +63,28 @@ namespace WebApi.Controllers
 
             return Ok(result);
             
+        }
+
+        [HttpPost("updateUserRoles")]
+        public ActionResult UpdateUserRole(OperationClaimDto operationClaimDto)
+        {
+            var result = _authService.UpdateUserRoles(operationClaimDto);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result.Message);
+            }
+            return Ok(result);
+        }
+
+        [HttpPost("addRole")]
+        public ActionResult AddRole(OperationClaimDto operationClaimDto)
+        {
+            var result = _authService.AddOperationClaim(operationClaimDto);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result.Message);
+            }
+            return Ok(result);
         }
     }
 }

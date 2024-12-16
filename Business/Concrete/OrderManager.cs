@@ -1,4 +1,5 @@
 ﻿using Business.Abstract;
+using Business.BusinessAspects.Autofac;
 using Business.Constants;
 using Business.Utilities;
 using Core.Aspects.Autofac.Caching.Caching;
@@ -22,61 +23,76 @@ namespace Business.Concrete
 
         IOrderDal _orderDal;
 
+        IOrderProductDal _orderProductDal;
+
         IProductService _productService;
 
         IUserService _userService;
 
-        public OrderManager(IOrderDal orderDal, IProductService productService, IUserService userService)
+
+        public OrderManager(IOrderDal orderDal, IProductService productService, IUserService userService, IOrderProductDal orderProductDal)
         {
             _orderDal = orderDal;
             _productService = productService;
             _userService = userService;
+            _orderProductDal = orderProductDal;
         }
 
         [CacheRemoveAspect("IOrderService.Get")]
+        [TransactionalOperation]
         public IResult Add(OrderRequestDto orderRequestDto)
         {
+
             var result = BusinessRules.Check();
 
             if (result.Count != 0)
             {
                 return new ErrorResult(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
             }
-            Order order = new Order()
+            Order newOrder = new Order()
             {
                 OrderDate = DateTime.Now,
                 TotalPrice = 0,
                 User = _userService.GetAllByIds(new List<int> { orderRequestDto.UserId }).Data[0] ,
                 IsDeleted = false
             };
-            List<Product> products = _productService.GetAllByIds(orderRequestDto.ProductIds).Data;
-            List<OrderProduct> saltProducts = new List<OrderProduct>();
-            products.ForEach(product =>
-            {
-                var existingProduct = saltProducts.FirstOrDefault(x => x.ProductId == product.Id);
-                if (existingProduct != null)
-                {
-                    existingProduct.ProductQuantity++;
-                }
-                else
-                {
-                    OrderProduct newProduct = new OrderProduct
-                    {
-                        OrderId = order.Id,
-                        ProductId = product.Id,
-                        ProductQuantity = orderRequestDto.ProductIds.Count(pId => pId.Equals(product.Id))
-                    };
-                    saltProducts.Add(newProduct);
-                }
-                order.TotalPrice += product.UnitPrice;
 
-            });
-            saltProducts.ForEach(p => { order.Products.Add(p); });
-            _orderDal.Add(order);
+            if(orderRequestDto.ProductIds.Count != 0)
+            {
+                Order order = _orderDal.AddAndReturn(newOrder);
+                List<Product> products = _productService.GetAllByIds(orderRequestDto.ProductIds).Data;
+                List<OrderProduct> saltProducts = new List<OrderProduct>();
+                foreach (var product in products)
+                {
+                    var existingProduct = saltProducts.FirstOrDefault(x => x.ProductId == product.Id);
+                    if (existingProduct != null)
+                    {
+                        existingProduct.ProductQuantity++;
+                        order.TotalPrice += existingProduct.Product.UnitPrice * existingProduct.ProductQuantity;
+                    }
+                    else
+                    {
+                        OrderProduct newProduct = new OrderProduct
+                        {
+                            Order = order,
+                            Product = product,
+                            ProductQuantity = orderRequestDto.ProductIds.Count(pId => pId.Equals(product.Id))
+                        };
+                        newProduct = _orderProductDal.AddAndReturn(newProduct);
+                        saltProducts.Add(newProduct);
+                        order.Products.Add(newProduct);
+                        order.TotalPrice += product.UnitPrice * newProduct.ProductQuantity;
+                    }
+                }
+                _orderDal.Update(order);
+                return new SuccessResult(Messages.OrderAdded);
+            }
+            _orderDal.Add(newOrder);
             return new SuccessResult(Messages.OrderAdded);
         }
 
         [CacheRemoveAspect("IOrderService.Get")]
+        [TransactionalOperation]
         public IResult Delete(int id)
         {
             {
@@ -104,7 +120,7 @@ namespace Business.Concrete
             {
                 return new ErrorDataResult<List<OrderResponseDto>>(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
             }
-            List<Order> orders = _orderDal.GetAllAndDepends(includeProperties: "Products.Product,User");
+            List<Order> orders = _orderDal.GetAllAndDepends(includeProperties: "Products,Products.Product,Products.Product.Category,User");
             return new SuccessDataResult<List<OrderResponseDto>>(orders
                 .ConvertAll(o => OrderResponseDto.Generate(o)), Messages.OrdersListed);
             
@@ -118,7 +134,7 @@ namespace Business.Concrete
             {
                 return new ErrorDataResult<List<Order>>(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
             }
-            return new SuccessDataResult<List<Order>>(_orderDal.GetAll().FindAll(o => ids.Contains(o.Id)), Messages.OrdersListed);
+            return new SuccessDataResult<List<Order>>(_orderDal.GetAllAndDepends(includeProperties: "Products,User").FindAll(o => ids.Contains(o.Id)), Messages.OrdersListed);
 
         }
 
@@ -134,6 +150,7 @@ namespace Business.Concrete
         }
 
         [CacheRemoveAspect("IOrderService.Get")]
+        [TransactionalOperation]
         public IDataResult<OrderResponseDto> Update(OrderRequestDto orderRequestDto)
         {
             var result = BusinessRules.Check();
@@ -142,20 +159,42 @@ namespace Business.Concrete
             {
                 return new ErrorDataResult<OrderResponseDto>(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
             }
-            Order order = _orderDal.Get(o => o.Id.Equals(orderRequestDto.OrderId));
-            order.OrderDate = orderRequestDto.OrderDate;
-            List<Product> products = _productService.GetAllByIds(orderRequestDto.ProductIds).Data;
+            Order order = _orderDal.Get(o => o.Id.Equals(orderRequestDto.OrderId), includeProperties: "Products,Products.Product,Products.Product.Category,User");
+            order.OrderDate = DateTime.Now;
+            order.Products.ToList().ForEach(op => _orderProductDal.Delete(op));
             order.Products.Clear();
-
-            products.Select(product => new OrderProduct
+            if (orderRequestDto.ProductIds.Count != 0)
             {
-                OrderId = order.Id,
-                ProductId = product.Id,
-                ProductQuantity = orderRequestDto.ProductIds.Count(pId => pId.Equals(product.Id))
-            }).ToList().ForEach(p => order.Products.Add(p));
-
+                List<Product> products = _productService.GetAllByIds(orderRequestDto.ProductIds).Data;
+                List<OrderProduct> saltProducts = new List<OrderProduct>();
+                foreach (var product in products)
+                {
+                    var existingProduct = saltProducts.FirstOrDefault(x => x.ProductId == product.Id);
+                    if (existingProduct != null)
+                    {
+                        existingProduct.ProductQuantity++;
+                        order.TotalPrice += existingProduct.Product.UnitPrice * existingProduct.ProductQuantity;
+                    }
+                    else
+                    {
+                        OrderProduct newProduct = new OrderProduct
+                        {
+                            Order = order,
+                            Product = product,
+                            ProductQuantity = orderRequestDto.ProductIds.Count(pId => pId.Equals(product.Id))
+                        };
+                        newProduct = _orderProductDal.AddAndReturn(newProduct);
+                        saltProducts.Add(newProduct);
+                        order.Products.Add(newProduct);
+                        order.TotalPrice += product.UnitPrice * newProduct.ProductQuantity;
+                    }
+                }
+            }
+            order.Status = true;
+            
             _orderDal.Update(order);
-            return new SuccessDataResult<OrderResponseDto>(Messages.OrderUpdated);
+            return new SuccessDataResult<OrderResponseDto>(OrderResponseDto.Generate(order),Messages.OrderUpdated);
+            
         }
     }
 }

@@ -50,7 +50,7 @@ namespace Business.Concrete
             Product product = new Product();
             product.Name = entity.ProductName;
             product.Description = entity.ProductDescription;
-            product.CategoryId = entity.CategoryId;
+            product.Category = _categoryService.GetAllByIds(new List<int> { entity.CategoryId }).Data[0];
             product.UnitsInStock = entity.UnitsInStock;
             product.UnitPrice = entity.UnitPrice;
             product.IsDeleted = false;
@@ -144,7 +144,7 @@ namespace Business.Concrete
             {
                 return new ErrorDataResult<List<Product>>(results.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
             }
-            return new SuccessDataResult<List<Product>>(_productDal.GetAll().FindAll(p => ids.Contains(p.Id)), Messages.ProductListed);
+            return new SuccessDataResult<List<Product>>(_productDal.GetAllAndDepends(includeProperties: "Category,Orders").FindAll(p => ids.Contains(p.Id)), Messages.ProductListed);
         }
 
         private IResult CheckIfCategoryNotFound(int categoryId)

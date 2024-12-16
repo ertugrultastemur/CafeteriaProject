@@ -77,5 +77,7 @@ namespace Business.Constants
         public static string OrderUpdated = "Sipariş güncellendi.";
 
         public static string RefreshTokenCreated { get; internal set; }
+        public static string OperationClaimAdded { get; internal set; }
+        public static string OperationClaimAlreadyExists { get; internal set; }
     }
 }

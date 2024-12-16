@@ -3,6 +3,7 @@ using Business.Constants;
 using Core.Aspects.Autofac.Performance;
 using Core.Dtos;
 using Core.Entities.Concrete;
+using Core.Utilities.Business;
 using Core.Utilities.Hashing;
 using Core.Utilities.JWT;
 using Core.Utilities.Results;
@@ -21,12 +22,14 @@ namespace Business.Concrete
         private IUserService _userService;
         private ITokenHelper _tokenHelper;
         private IRefreshTokenDal _refreshTokenDal;
+        private IOperationClaimDal _operationClaimDal;
 
-        public AuthManager(IUserService userService, ITokenHelper tokenHelper, IRefreshTokenDal refreshTokenDal)
+        public AuthManager(IUserService userService, ITokenHelper tokenHelper, IRefreshTokenDal refreshTokenDal, IOperationClaimDal operationClaimDal)
         {
             _userService = userService;
             _tokenHelper = tokenHelper;
             _refreshTokenDal = refreshTokenDal;
+            _operationClaimDal = operationClaimDal;
         }
 
 
@@ -74,7 +77,7 @@ namespace Business.Concrete
                 UserId = userCheck.Data.Id,
                 IsDeleted = false
             };
-            _refreshTokenDal.Add(token);
+            _refreshTokenDal.Update(token);
             return new SuccessDataResult<TokenResponseDto>(new TokenResponseDto { AccessToken=accessToken.Data.Token, RefreshToken=refreshToken.Data.Token}, Messages.UserSignInSuccessfully);
         }
 
@@ -113,6 +116,7 @@ namespace Business.Concrete
                 UserId = user.UserId,
                 IsDeleted = false
             };
+            _refreshTokenDal.Add(token);
             return new SuccessDataResult<TokenResponseDto>(new TokenResponseDto()
             {
                 AccessToken = accessToken.Data.Token,
@@ -123,14 +127,13 @@ namespace Business.Concrete
 
         public IDataResult<TokenResponseDto> Refresh(TokenResponseDto tokenResponseDto)
         {
-            var oldToken = _tokenHelper.GetUserIdFromToken(tokenResponseDto.RefreshToken);
-            if (oldToken == null || !oldToken.IsSuccess)
+            var userId = _tokenHelper.GetUserIdFromToken(tokenResponseDto.RefreshToken);
+            if (userId == null || !userId.IsSuccess)
             {
-                return new ErrorDataResult<TokenResponseDto>(oldToken.Message??"401");
+                return new ErrorDataResult<TokenResponseDto>(userId.Message??"401");
             }
 
-            RefreshToken refToken = _refreshTokenDal.Get(r => r.UserId ==oldToken.Data);
-
+            RefreshToken refToken = _refreshTokenDal.Get(r => r.UserId == userId.Data);
 
             if (!HashingHelper.VerifyPasswordHash(tokenResponseDto.RefreshToken, refToken.TokenHash, refToken.TokenSalt))
             {
@@ -150,7 +153,7 @@ namespace Business.Concrete
                 UserId = user.Id,
                 IsDeleted = false
             };
-            _refreshTokenDal.Add(newToken);
+            _refreshTokenDal.Update(newToken);
             AccessToken accessToken = CreateAccessToken(user).Data;
             return new SuccessDataResult<TokenResponseDto>(new TokenResponseDto()
             {
@@ -159,9 +162,60 @@ namespace Business.Concrete
             });
         }
 
+        public IResult AddOperationClaim(OperationClaimDto operationClaimDto)
+        {
+            var result = BusinessRules.Check();
 
+            if (result.Count != 0)
+            {
+                return new ErrorResult(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
+            }
+            OperationClaim operationClaim = new OperationClaim { Name = operationClaimDto.Name , IsDeleted = false};
 
-        public IResult UserExists(string email)
+            _operationClaimDal.Add(operationClaim);
+
+            return new SuccessResult(Messages.OperationClaimAdded);
+        }
+
+        public IDataResult<UserResponseDto> UpdateUserRoles(OperationClaimDto operationClaimDto)
+        {
+            var result = BusinessRules.Check(CheckIfOperationClaimAlreadyExists(operationClaimDto));
+
+            if (result.Count != 0)
+            {
+                return new ErrorDataResult<UserResponseDto>(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
+            }
+            UserResponseDto userDto = _userService.GetById(operationClaimDto.UserId).Data;
+            foreach (var operationClaimId in operationClaimDto.OperationClaimIds)
+            {
+                if (!userDto.OperationClaimIds.Contains(operationClaimId))
+                {
+                    userDto.OperationClaimIds.Add(operationClaimId);
+                }
+            }
+            return _userService.Update(new UserRequestDto
+            {
+                Id = userDto.Id,
+                Email = userDto.Email,
+                FirstName = userDto.FirstName,
+                LastName = userDto.LastName,
+                Balance = userDto.Balance,
+                DepartmentId = userDto.DepartmentId,
+                OperationClaimIds = userDto.OperationClaimIds
+            });
+        }
+
+        public IResult CheckIfOperationClaimAlreadyExists(OperationClaimDto operationClaimDto)
+        {
+           /* UserResponseDto userResponse = _userService.GetById(operationClaimDto.UserId).Data;
+            if (userResponse.OperationClaimIds.Contains(operationClaimDto.Id))
+            {
+                return new ErrorResult(Messages.OperationClaimAlreadyExists);
+            }*/
+            return new SuccessResult();
+        }
+
+        public IResult CheckIfUserExists(string email)
         {
             if (_userService.GetByEmail(email).Data != null)
             {

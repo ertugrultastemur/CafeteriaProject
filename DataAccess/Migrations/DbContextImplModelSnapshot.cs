@@ -17,7 +17,7 @@ namespace DataAccess.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "6.0.36")
+                .HasAnnotation("ProductVersion", "6.0.33")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
@@ -44,11 +44,8 @@ namespace DataAccess.Migrations
 
             modelBuilder.Entity("Core.Entities.Concrete.RefreshToken", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<int>("UserId")
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
@@ -67,12 +64,7 @@ namespace DataAccess.Migrations
                         .IsRequired()
                         .HasColumnType("varbinary(max)");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
+                    b.HasKey("UserId");
 
                     b.ToTable("RefreshTokens");
                 });
@@ -280,9 +272,6 @@ namespace DataAccess.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Id")
-                        .HasColumnType("int");
-
                     b.Property<int>("ProductQuantity")
                         .HasColumnType("int");
 
@@ -351,17 +340,21 @@ namespace DataAccess.Migrations
 
             modelBuilder.Entity("Core.Entities.Concrete.UserOperationClaim", b =>
                 {
-                    b.HasOne("Core.Entities.Concrete.OperationClaim", null)
+                    b.HasOne("Core.Entities.Concrete.OperationClaim", "OperationClaim")
                         .WithMany("Users")
                         .HasForeignKey("OperationClaimId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Core.Entities.Concrete.User", null)
+                    b.HasOne("Core.Entities.Concrete.User", "User")
                         .WithMany("OperationClaims")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("OperationClaim");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Entity.Concrete.Branch", b =>
@@ -399,17 +392,21 @@ namespace DataAccess.Migrations
 
             modelBuilder.Entity("Entity.Concrete.OrderProduct", b =>
                 {
-                    b.HasOne("Entity.Concrete.Order", null)
+                    b.HasOne("Entity.Concrete.Order", "Order")
                         .WithMany("Products")
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Entity.Concrete.Product", null)
+                    b.HasOne("Entity.Concrete.Product", "Product")
                         .WithMany("Orders")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("Entity.Concrete.Product", b =>

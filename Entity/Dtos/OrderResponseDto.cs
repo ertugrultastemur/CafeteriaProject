@@ -13,7 +13,7 @@ namespace Entity.Dtos
         public int OrderId { get; set; }
         public DateTime OrderDate { get; set; }
         public decimal TotalPrice { get; set; }
-        public List<int> ProductIds { get; set; }
+        public List<OrderProductResponseDto> Products { get; set; }
         public int UserId { get; set; }
 
         public static OrderResponseDto Generate(Order order)
@@ -23,7 +23,7 @@ namespace Entity.Dtos
                 OrderId = order.Id,
                 OrderDate = order.OrderDate,
                 TotalPrice = order.TotalPrice,
-                ProductIds = order.Products != null ? order.Products.Select(p => p.ProductId).ToList() : new List<int>(),
+                Products = order.Products != null ? order.Products.Select(p => OrderProductResponseDto.Generate(p)).ToList() : new List<OrderProductResponseDto>(),
                 UserId = order.UserId,
             };
         }

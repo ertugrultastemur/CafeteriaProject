@@ -25,11 +25,14 @@ namespace Business.Concrete
 
         private IOperationClaimDal _operationClaimDal;
 
-        public UserManager(IUserDal userDal, IOperationClaimDal operationClaimDal, IRefreshTokenDal refreshTokenDal)
+        private IUserOperationClaimDal _userOperationClaimDal;
+
+        public UserManager(IUserDal userDal, IOperationClaimDal operationClaimDal, IRefreshTokenDal refreshTokenDal, IUserOperationClaimDal userOperationClaimDal)
         {
             _userDal = userDal;
             _operationClaimDal = operationClaimDal;
             _refreshTokenDal = refreshTokenDal;
+            _userOperationClaimDal = userOperationClaimDal;
         }
 
         [TransactionalOperation]
@@ -79,6 +82,7 @@ namespace Business.Concrete
             return new SuccessDataResult<User>( Messages.UserAdded);
         }
 
+        [TransactionalOperation]
         public IDataResult<UserResponseDto> Update(UserRequestDto userDto)
         {
             List<IResult> result = BusinessRules.Check();
@@ -87,12 +91,32 @@ namespace Business.Concrete
             {
                 return new ErrorDataResult<UserResponseDto>(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
             }
+            List<OperationClaim> operationClaims = _operationClaimDal.GetAll(oc => userDto.OperationClaimIds.Contains(oc.Id));
+            List<UserOperationClaim> userOperationClaims = new List<UserOperationClaim>();
             User user = _userDal.Get(u => u.Id == userDto.Id);
             user.Email = userDto.Email;
             user.FirstName = userDto.FirstName;
             user.LastName = userDto.LastName;
             user.Balance = userDto.Balance;
             user.DepartmentId = userDto.DepartmentId;
+            operationClaims.ForEach(oc => userOperationClaims.Add(new UserOperationClaim { UserId = user.Id, OperationClaimId = oc.Id }));
+            List<UserOperationClaim> newUserOperationClaims = new List<UserOperationClaim>();
+            foreach (var userOperationClaim in userOperationClaims)
+            {
+                var exists = _userOperationClaimDal.Get(uoc =>
+                    uoc.UserId == userOperationClaim.UserId &&
+                    uoc.OperationClaimId == userOperationClaim.OperationClaimId);
+
+                if (exists == null)
+                {
+                    newUserOperationClaims.Add(_userOperationClaimDal.AddAndReturn(userOperationClaim));
+                }
+                else
+                {
+                    newUserOperationClaims.Add(exists); 
+                }
+            }
+            user.OperationClaims = newUserOperationClaims;
             _userDal.Update(user);
 
             return new SuccessDataResult<UserResponseDto>(UserResponseDto.Generate(user), Messages.UserUpdated);
@@ -142,7 +166,7 @@ namespace Business.Concrete
             {
                 return new ErrorDataResult<List<UserResponseDto>>( result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
             }
-            return new SuccessDataResult<List<UserResponseDto>>(_userDal.GetAllAndDepends(includeProperties: "Department,Order,OperationClaims").ConvertAll(u => UserResponseDto.Generate(u)), Messages.UsersListed);
+            return new SuccessDataResult<List<UserResponseDto>>(_userDal.GetAllAndDepends(includeProperties: "OperationClaims").ConvertAll(u => UserResponseDto.Generate(u)), Messages.UsersListed);
         }
 
 
@@ -154,7 +178,8 @@ namespace Business.Concrete
             {
                 return new ErrorDataResult<UserResponseDto>(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
             }
-            return new SuccessDataResult<UserResponseDto>(UserResponseDto.Generate(_userDal.Get(u => u.Id.Equals(id))), Messages.UsersListed);
+            User user = _userDal.Get(u => u.Id.Equals(id), includeProperties: "OperationClaims,OperationClaims.OperationClaim");
+            return new SuccessDataResult<UserResponseDto>(UserResponseDto.Generate(user), Messages.UsersListed);
         }
 
         public IDataResult<List<User>> GetAllByIds(List<int> ids)

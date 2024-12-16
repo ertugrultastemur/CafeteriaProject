@@ -10,7 +10,6 @@ namespace Entity.Concrete
 {
     public class OrderProduct : IEntity
     {
-        public int Id { get; set; }
         public int OrderId { get; set; }
         [ForeignKey(nameof(OrderId))]
         public virtual Order Order { get; set; }
