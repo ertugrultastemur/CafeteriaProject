@@ -1,4 +1,6 @@
-﻿using Core.Entities.Abstract;
+﻿using Core.Dtos;
+using Core.Entities.Abstract;
+using Core.Entities.Concrete;
 using Entity.Concrete;
 using System;
 using System.Collections.Generic;

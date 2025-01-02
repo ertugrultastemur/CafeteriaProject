@@ -14,6 +14,7 @@ namespace Entity.Dtos
         public DateTime OrderDate { get; set; }
         public decimal TotalPrice { get; set; }
         public List<int> ProductIds { get; set; }
+        public int Status { get; set; }
         public int UserId { get; set; }
 
         public static OrderRequestDto Generate(Order order)
@@ -23,6 +24,7 @@ namespace Entity.Dtos
                 OrderDate = order.OrderDate,
                 TotalPrice = order.TotalPrice,
                 ProductIds = order.Products.Select(p => p.ProductId).ToList(),
+                Status = order.Status,
                 UserId = order.User.Id,
             };
         }

@@ -11,8 +11,7 @@ namespace Core.Entities.Concrete
 {
     public class RefreshToken : IEntity
     {
-        public int Id { get; set; }
-
+        [Key]
         public int UserId { get; set; }
 
         [ForeignKey(nameof(UserId))]

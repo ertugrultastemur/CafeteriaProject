@@ -24,6 +24,17 @@ namespace Core.EntityFramework
             }
         }
 
+        public TEntity AddAndReturn(TEntity entity)
+        {
+            using (TContext context = new TContext())
+            {
+                var addedEntity = context.Entry(entity);
+                addedEntity.State = Microsoft.EntityFrameworkCore.EntityState.Added;
+                context.SaveChanges();
+                return entity;
+            }
+        }
+
         public void Delete(TEntity entity)
         {
             using (TContext context = new TContext())
@@ -38,7 +49,26 @@ namespace Core.EntityFramework
         {
             using (TContext context = new TContext())
             {
-                return context.Set<TEntity>().SingleOrDefault(filter);
+                IQueryable<TEntity> query = context.Set<TEntity>();
+
+                return query.SingleOrDefault(filter);
+            }
+        }
+
+        public TEntity Get(Expression<Func<TEntity, bool>> filter, string includeProperties = "")
+        {
+            using (TContext context = new TContext())
+            {
+                IQueryable<TEntity> query = context.Set<TEntity>();
+                if (includeProperties != null)
+                {
+                    foreach (var includeProperty in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        query = query.Include(includeProperty);
+                    }
+                }
+
+                return query.SingleOrDefault(filter);
             }
         }
 
@@ -76,6 +106,7 @@ namespace Core.EntityFramework
             {
                 var updatedEntity = context.Entry(entity);
                 updatedEntity.State = Microsoft.EntityFrameworkCore.EntityState.Added;
+                context.Entry(entity).State = EntityState.Modified;
                 context.SaveChanges();
             }
         }

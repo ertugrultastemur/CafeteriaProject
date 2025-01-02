@@ -15,8 +15,6 @@ namespace Entity.Dtos
 
         public string CategoryName { get; set; }
 
-        public short UnitsInStock { get; set; }
-
         public int Quantity { get; set; }
 
     }

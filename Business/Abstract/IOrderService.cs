@@ -19,6 +19,10 @@ namespace Business.Abstract
 
         IDataResult<OrderResponseDto> Update(OrderRequestDto orderRequestDto);
 
+        IDataResult<OrderResponseDto> UpdateStatus(OrderRequestDto orderRequestDto);
+
+        IDataResult<OrderResponseDto> AddManualOrder(OrderRequestDto orderRequestDto);
+
         IResult Add(OrderRequestDto order);
 
         IResult Delete(int id);

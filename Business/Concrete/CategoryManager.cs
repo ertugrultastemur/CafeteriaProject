@@ -1,7 +1,9 @@
 ﻿using Business.Abstract;
 using Business.BusinessAspects.Autofac;
 using Business.Constants;
+using Business.Utilities;
 using Core.Aspects.Autofac.Caching.Caching;
+using Core.Dtos;
 using Core.Utilities.Business;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
@@ -21,10 +23,12 @@ namespace Business.Concrete
     {
         ICategoryDal _categoryDal;
 
-        public CategoryManager(ICategoryDal categoryDal)
+        IBranchService _branchService;
+
+        public CategoryManager(ICategoryDal categoryDal, IBranchService branchService)
         {
             _categoryDal = categoryDal;
-
+            _branchService = branchService;
         }
 
         [TransactionalOperation]
@@ -78,7 +82,9 @@ namespace Business.Concrete
         [CacheAspect]
         public IDataResult<List<CategoryResponseDto>> GetAll()
         {
-            return new SuccessDataResult<List<CategoryResponseDto>>(_categoryDal.GetAllAndDepends(includeProperties: "Products").ConvertAll(c => CategoryResponseDto.Generate(c)), Messages.CategoriesListed);
+            UserDetailDto _user = UserDetailGetter.GetDetails();
+            Branch branch = _branchService.GetByUserId(_user.Id).Data;
+            return new SuccessDataResult<List<CategoryResponseDto>>(_categoryDal.GetAll().ConvertAll(c => CategoryResponseDto.Generate(c)), Messages.CategoriesListed);
 
         }
 
@@ -86,6 +92,13 @@ namespace Business.Concrete
         public IDataResult<List<Category>> GetAllByIds(List<int> ids)
         {
             return new SuccessDataResult<List<Category>>(_categoryDal.GetAllAndDepends(includeProperties: "Products").FindAll(c => ids.Contains(c.Id)));
+
+        }
+
+        [CacheAspect]
+        public IDataResult<List<CategoryNameResponseDto>> GetAllCategoryNames()
+        {
+            return new SuccessDataResult<List<CategoryNameResponseDto>>(_categoryDal.GetAll().ConvertAll(c => CategoryNameResponseDto.Generate(c)), Messages.CategoriesListed);
 
         }
 

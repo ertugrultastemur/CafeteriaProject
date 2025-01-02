@@ -27,6 +27,17 @@ namespace WebApi.Controllers
             return BadRequest(result.Message);
         }
 
+        [HttpGet("getallcategorynames")]
+        public ActionResult GetAllCategoryNames()
+        {
+            var result = _categoryService.GetAllCategoryNames();
+            if (result.IsSuccess)
+            {
+                return Ok(result);
+            }
+            return BadRequest(result.Message);
+        }
+
         [HttpGet("getall")]
         public ActionResult GetAll()
         {

@@ -20,6 +20,10 @@ namespace Business.Abstract
 
         IDataResult<UserResponseDto> UpdateUserRoles(OperationClaimDto operationClaimDto);
 
+        IDataResult<UserResponseDto> ResetPassword(ResetPasswordDto resetPasswordDto);
+
+        IDataResult<List<OperationClaimResponseDto>> GetAllOperationClaims();
+
         IResult CheckIfUserExists(string email);
 
         IResult CheckIfOperationClaimAlreadyExists(OperationClaimDto operationClaimDto);

@@ -13,6 +13,7 @@ namespace Entity.Dtos
     {
         public int DepartmentId { get; set; }
         public int BranchId { get; set; }
+        public string BranchName { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public int Floor { get; set; }
@@ -28,6 +29,7 @@ namespace Entity.Dtos
                 Name = department.Name,
                 Description = department.Description,
                 Floor = department.Floor,
+                BranchName = department.Branch.Name,
                 Users = department.Users.ToList().ConvertAll(u => UserResponseDto.Generate(u)) ?? new List<UserResponseDto>()
             };
         }

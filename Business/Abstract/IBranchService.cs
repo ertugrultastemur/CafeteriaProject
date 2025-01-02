@@ -19,6 +19,8 @@ namespace Business.Abstract
 
         IDataResult<Branch> GetBranchById(int branchId);
 
+        IDataResult<Branch> GetByUserId(int userId);
+
         IDataResult<List<Branch>> GetAllByIds(List<int> ids);
 
         IResult Add(BranchRequestDto branchDto);

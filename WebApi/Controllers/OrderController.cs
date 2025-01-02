@@ -62,6 +62,28 @@ namespace WebApi.Controllers
             return BadRequest(result.Message);
         }
 
+        [HttpPost("updatestatus")]
+        public ActionResult UpdateStatus(OrderRequestDto orderRequestDto)
+        {
+            var result = _orderService.UpdateStatus(orderRequestDto);
+            if (result.IsSuccess)
+            {
+                return Ok(result);
+            }
+            return BadRequest(result.Message);
+        }
+
+        [HttpPost("addmanualorder")]
+        public ActionResult AddManualOrder(OrderRequestDto orderRequestDto)
+        {
+            var result = _orderService.AddManualOrder(orderRequestDto);
+            if (result.IsSuccess)
+            {
+                return Ok(result);
+            }
+            return BadRequest(result.Message);
+        }
+
         [HttpDelete("delete")]
         public ActionResult Delete(int id)
         {

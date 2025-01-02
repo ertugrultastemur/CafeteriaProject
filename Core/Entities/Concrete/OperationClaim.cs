@@ -9,7 +9,7 @@ namespace Core.Entities.Concrete
 
         public string Name { get; set; }
             
-        public ICollection<UserOperationClaim> Users { get; } = new List<UserOperationClaim>();
+        public ICollection<UserOperationClaim> Users { get; set; } = new List<UserOperationClaim>();
 
         public bool IsDeleted { get; set; }
     }

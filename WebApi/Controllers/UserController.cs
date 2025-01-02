@@ -28,6 +28,28 @@ namespace WebApi.Controllers
             return BadRequest(result.Message);
         }
 
+        [HttpPost("addbalance")]
+        public ActionResult AddBalance(UserRequestDto userRequestDto)
+        {
+            var result = _userService.AddBalance(userRequestDto);
+            if (result.IsSuccess)
+            {
+                return Ok(result);
+            }
+            return BadRequest(result.Message);
+        }
+
+        [HttpPost("updatebalance")]
+        public ActionResult UpdateBalance(decimal balance)
+        {
+            var result = _userService.UpdateBalance(balance);
+            if (result.IsSuccess)
+            {
+                return Ok(result);
+            }
+            return BadRequest(result.Message);
+        }
+
         [HttpGet("getall")]
         public ActionResult GetAll()
         {
@@ -54,6 +76,17 @@ namespace WebApi.Controllers
         public ActionResult Update(UserRequestDto userRequestDto)
         {
             var result = _userService.Update(userRequestDto);
+            if (result.IsSuccess)
+            {
+                return Ok(result);
+            }
+            return BadRequest(result.Message);
+        }
+
+        [HttpPost("undodelete")]
+        public ActionResult UndoDelete(int id)
+        {
+            var result = _userService.UndoDelete(id);
             if (result.IsSuccess)
             {
                 return Ok(result);

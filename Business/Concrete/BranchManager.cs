@@ -115,7 +115,18 @@ namespace Business.Concrete
             {
                 return new ErrorDataResult<BranchResponseDto>(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
             }
-            return new SuccessDataResult<BranchResponseDto>(BranchResponseDto.Generate(_branchDal.Get(b => b.Id.Equals(branchId))), Messages.BranchListed);
+            return new SuccessDataResult<BranchResponseDto>(BranchResponseDto.Generate(_branchDal.Get(b => b.Id.Equals(branchId), includeProperties: "Municipality")), Messages.BranchListed);
+        }
+
+        public IDataResult<Branch> GetByUserId(int userId)
+        {
+            List<IResult> result = BusinessRules.Check();
+
+            if (result.Count != 0)
+            {
+                return new ErrorDataResult<Branch>(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
+            }
+            return new SuccessDataResult<Branch>(_branchDal.Get(b => b.Departments.Any( d=> d.Users.Any(u => u.Id == userId)), includeProperties: "Departments"), Messages.BranchListed);
         }
 
         [TransactionalOperation]

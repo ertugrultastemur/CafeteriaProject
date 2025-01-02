@@ -1,0 +1,37 @@
+﻿version: '3'
+
+services:
+
+  Cafeteria-Project:
+    networks:
+      - cafeteria-network
+    container_name: cafeteria-project
+    image: cafeteria-project
+    build:
+      context: ./cafeteria-project
+      dockerfile: Dockerfile
+    ports:
+      - "7041:7041"
+    depends_on:
+      - mssql
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql-server
+    networks:
+      - cafeteria-network
+    ports:
+      - "1433:1433" # MSSQL'in varsayılan portu
+    environment:
+      ACCEPT_EULA: "Y"                  # MSSQL lisans anlaşmasını kabul et
+      SA_PASSWORD: "Aa123456" # Güçlü bir şifre belirleyin
+      MSSQL_PID: "Express"              # MSSQL sürümünü belirleyin (Express, Developer, vb.)
+    volumes:
+      - mssql_data:/var/opt/mssql     
+
+networks:
+  cafeteria-network:
+    driver: bridge
+
+volumes:
+  mssql_data:

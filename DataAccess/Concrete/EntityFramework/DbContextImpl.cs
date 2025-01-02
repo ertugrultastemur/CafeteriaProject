@@ -17,6 +17,7 @@ namespace DataAccess.Concrete.EntityFramework
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlServer(@"Server=DESKTOP-NC93FPA;Database=Cafeteriadb;User Id=sa;Password=123456");
+            //optionsBuilder.UseSqlServer(@"Server=mssql-server,1433;Database=Cafeteriadb;User Id=sa;Password=Aa123456");
             //optionsBuilder.UseLazyLoadingProxies();
         }
 

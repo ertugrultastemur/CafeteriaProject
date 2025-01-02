@@ -24,7 +24,7 @@ namespace Entity.Concrete
         [ForeignKey("UserId")]
         public virtual User User { get; set; }
 
-        public bool Status { get; set; }
+        public int Status { get; set; }
 
         public bool IsDeleted { get; set; }
 
