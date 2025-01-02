@@ -26,7 +26,7 @@ namespace Core.Dtos
 
         public List<int> OperationClaimIds { get; set; }
 
-        public double Balance { get; set; }
+        public decimal Balance { get; set; }
 
 
         public static UserDto Generate(User user)

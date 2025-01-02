@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -22,9 +23,14 @@ namespace Entity.Concrete
 
         public string Description { get; set; }
 
-        public short UnitsInStock { get; set; }
-
         public decimal UnitPrice { get; set; }
+
+        public string ImagePath { get; set; }
+
+        public int BranchId { get; set; }
+
+        [ForeignKey("BranchId")]
+        public virtual Branch Branch { get; set; }
 
         public virtual ICollection<OrderProduct> Orders { get; set; } = new List<OrderProduct>();
 

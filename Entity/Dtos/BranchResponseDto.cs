@@ -12,6 +12,7 @@ namespace Entity.Dtos
     {
         public int BranchId { get; set; }
         public int MunicipalityId { get; set; }
+        public string? MunicipalityName { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public List<DepartmentResponseDto> Departments { get; set; }
@@ -24,7 +25,8 @@ namespace Entity.Dtos
                 Description = branch.Description,
                 MunicipalityId = branch.MunicipalityId,
                 Name = branch.Name,
-               // Departments = branch.Departments.ToList(),
+                MunicipalityName = branch.Municipality.Name,
+                // Departments = branch.Departments.ToList(),
                 Departments = branch.Departments.ToList().ConvertAll(d => DepartmentResponseDto.Generate(d))
             };
         }

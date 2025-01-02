@@ -20,7 +20,17 @@ namespace Business.Abstract
 
         IDataResult<UserResponseDto> Update(UserRequestDto userDto);
 
+        IDataResult<UserResponseDto> ResetPassword(ResetPasswordDto resetPasswordDto);
+
+        IResult UndoDelete(int id);
+
         IResult Delete(int id);
+
+        IResult UpdateBalance(decimal balance);
+
+        IResult UpdateBalanceByUserId(int userId, decimal balance);
+
+        IResult AddBalance(UserRequestDto userRequestDto);
 
         IDataResult<UserResponseDto> GetById(int id);
 

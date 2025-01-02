@@ -3,6 +3,7 @@ using Business.BusinessAspects.Autofac;
 using Business.Constants;
 using Business.Utilities;
 using Core.Aspects.Autofac.Caching.Caching;
+using Core.Dtos;
 using Core.Entities.Concrete;
 using Core.Utilities.Business;
 using Core.Utilities.Results;
@@ -73,13 +74,16 @@ namespace Business.Concrete
         [CacheAspect]
         public IDataResult<List<DepartmentResponseDto>> GetAll()
         {
+            UserDetailDto _user = UserDetailGetter.GetDetails();
+            Branch branch = _branchService.GetByUserId(_user.Id).Data;
+
             List<IResult> result = BusinessRules.Check();
 
             if (result.Count != 0)
             {
                 return new ErrorDataResult<List<DepartmentResponseDto>>( result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
             }
-            List<Department> departments = _departmentDal.GetAllAndDepends(includeProperties: "Branch,Users");
+            List<Department> departments = _departmentDal.GetAllAndDepends(d => d.Branch.Id == branch.Id, includeProperties: "Branch,Users");
 
             return new SuccessDataResult<List<DepartmentResponseDto>>(departments
                 .ConvertAll(d => DepartmentResponseDto.Generate(d)), Messages.BranchesListed);

@@ -19,6 +19,7 @@ namespace Entity.Concrete
         [ForeignKey("MunicipalityId")]
         public virtual Municipality Municipality { get; set; }
         public virtual ICollection<Department> Departments { get; } = new List<Department>();
+        public virtual ICollection<Product> Products { get; } = new List<Product>();
         public bool IsDeleted { get; set; }
     }
 }

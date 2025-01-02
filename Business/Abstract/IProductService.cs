@@ -1,6 +1,7 @@
 ﻿using Core.Utilities.Results;
 using Entity.Concrete;
 using Entity.Dtos;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,11 +16,11 @@ namespace Business.Abstract
 
         IDataResult<List<ProductResponseDto>> GetAllByCategoryId(int id);
 
-        IDataResult<ProductResponseDto> Update(ProductRequestDto productRequestDto);
+        IDataResult<ProductResponseDto> Update(ProductRequestDto productRequestDto, IFormFile image);
 
         IDataResult<ProductResponseDto> GetById(int productId);
 
-        IResult Add(ProductRequestDto entity);
+        IResult Add(ProductRequestDto entity, IFormFile image);
 
         IResult Delete(int id);
 

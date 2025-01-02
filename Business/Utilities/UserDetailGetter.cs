@@ -12,26 +12,30 @@ using Core.Extensions;
 using DataAccess.Abstract;
 using Business.Abstract;
 using Core.Dtos;
+using Entity.Concrete;
+using Entity.Dtos;
+using FluentValidation;
 
 namespace Business.Utilities
 {
-    public class UserDetailGetter
+    public static class UserDetailGetter
     {
-        private static IHttpContextAccessor _httpContextAccessor;
-        private static UserResponseDto User;
-        private static IUserService _userService;
+        private static IHttpContextAccessor _httpContextAccessor = ServiceTool.ServiceProvider.GetService<IHttpContextAccessor>();
 
-        public UserDetailGetter(IUserService userService)
-        {
-            _userService = userService;
-            _httpContextAccessor = ServiceTool.ServiceProvider.GetService<IHttpContextAccessor>();
-        }
 
-        public static UserResponseDto GetDetails()
+        public static UserDetailDto GetDetails()
         {
-            var email = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Email)?.Value;
-            User = _userService.GetAll().Data.FirstOrDefault(u => u.Email==email);
-            return User;
+            IHttpContextAccessor httpContextAccessor = ServiceTool.ServiceProvider.GetService<IHttpContextAccessor>();
+
+            var claims = _httpContextAccessor.HttpContext.User.Identities.First().Claims;
+            var name = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name).Value.Split(" ");
+            return new UserDetailDto { 
+                Id = Convert.ToInt32(claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier).Value),
+                FirstName = name[0],
+                LastName = name[1],
+                Email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email).Value,
+                Roles = claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value
+            };
         }
     }
 }

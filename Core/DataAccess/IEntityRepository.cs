@@ -15,9 +15,13 @@ namespace Core.DataAccess
 
         List<T> GetAllAndDepends(Expression<Func<T, bool>> filter = null, string includeProperties = "");
 
-        T Get(Expression<Func<T,bool>> filter);
+        T Get(Expression<Func<T, bool>> filter);
+
+        T Get(Expression<Func<T,bool>> filter, string includeProperties);
 
         void Add(T entity);
+
+        T AddAndReturn(T entity);
 
         void Update(T entity);
 

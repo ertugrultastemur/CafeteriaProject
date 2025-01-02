@@ -69,6 +69,7 @@ namespace Core.Utilities.JWT
 
         private JwtSecurityToken CreateAccessJwtSecurityToken(TokenOptions tokenOptions, User user, SigningCredentials signingCredentials, List<OperationClaim> operationClaims)
         {
+            _accessTokenExpiration = DateTime.Now.AddMinutes(tokenOptions.AccessTokenExpiration);
             try
             {
                 JwtSecurityToken jwt = new JwtSecurityToken(
@@ -90,12 +91,14 @@ namespace Core.Utilities.JWT
 
         private JwtSecurityToken CreateRefreshJwtSecurityToken(TokenOptions tokenOptions, User user, SigningCredentials signingCredentials)
         {
+            _refreshTokenExpiration = DateTime.Now.AddMinutes(tokenOptions.RefreshTokenExpiration);
+
             try
             {
                 JwtSecurityToken jwt = new JwtSecurityToken(
                 issuer: tokenOptions.Issuer,
                 audience: tokenOptions.Audience,
-                expires: _accessTokenExpiration,
+                expires: _refreshTokenExpiration,
                 notBefore: DateTime.Now,
                 claims: SetClaims(user),
                 signingCredentials: signingCredentials
@@ -138,7 +141,7 @@ namespace Core.Utilities.JWT
 
             var jwtToken = handler.ReadJwtToken(token);
 
-            var userIdClaim = jwtToken.Claims.FirstOrDefault(claim => claim.Type == "UserId");
+            var userIdClaim = jwtToken.Claims.FirstOrDefault(claim => claim.Type == "sub");
             if (userIdClaim == null)
                 return new ErrorDataResult<int?>("Token içinde id claimi bulunamadı.");
 

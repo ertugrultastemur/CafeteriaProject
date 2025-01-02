@@ -14,7 +14,9 @@ namespace Entity.Dtos
         public DateTime OrderDate { get; set; }
         public decimal TotalPrice { get; set; }
         public List<OrderProductResponseDto> Products { get; set; }
+        public int Status { get; set; }
         public int UserId { get; set; }
+        public string UserName { get; set; }
 
         public static OrderResponseDto Generate(Order order)
         {
@@ -24,7 +26,9 @@ namespace Entity.Dtos
                 OrderDate = order.OrderDate,
                 TotalPrice = order.TotalPrice,
                 Products = order.Products != null ? order.Products.Select(p => OrderProductResponseDto.Generate(p)).ToList() : new List<OrderProductResponseDto>(),
+                Status = order.Status,
                 UserId = order.UserId,
+                UserName = order.User.FirstName + " " + order.User.LastName
             };
         }
     }

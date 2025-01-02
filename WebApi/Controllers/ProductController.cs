@@ -39,9 +39,9 @@ namespace WebApi.Controllers
         }
 
         [HttpPost("add")]
-        public ActionResult Add(ProductRequestDto productRequestDto)
+        public ActionResult Add([FromForm] ProductRequestDto productRequestDto, [FromForm] IFormFile image)
         {
-            var result = _productService.Add(productRequestDto);
+            var result = _productService.Add(productRequestDto, image);
             if (result.IsSuccess)
             {
                 return Ok(result);
@@ -50,9 +50,9 @@ namespace WebApi.Controllers
         }
 
         [HttpPost("update")]
-        public ActionResult Update(ProductRequestDto productRequestDto)
+        public ActionResult Update([FromForm] ProductRequestDto productRequestDto, [FromForm] IFormFile image)
         {
-            var result = _productService.Update(productRequestDto);
+            var result = _productService.Update(productRequestDto, image);
             if (result.IsSuccess)
             {
                 return Ok(result);

@@ -3,6 +3,9 @@ using Business.BusinessAspects.Autofac;
 using Business.Constants;
 using Business.Utilities;
 using Core.Aspects.Autofac.Caching.Caching;
+using Core.Aspects.Autofac.Logging;
+using Core.CrossCuttingConcerns.Logging.Log4Net.Loggers;
+using Core.Dtos;
 using Core.Entities.Concrete;
 using Core.Utilities.Business;
 using Core.Utilities.Results;
@@ -38,12 +41,13 @@ namespace Business.Concrete
             _orderProductDal = orderProductDal;
         }
 
+        [LogAspect(typeof(DatabaseLogger))]
         [CacheRemoveAspect("IOrderService.Get")]
         [TransactionalOperation]
         public IResult Add(OrderRequestDto orderRequestDto)
         {
 
-            var result = BusinessRules.Check();
+            var result = BusinessRules.Check(CheckIfOrderProductsCount(orderRequestDto));
 
             if (result.Count != 0)
             {
@@ -53,10 +57,10 @@ namespace Business.Concrete
             {
                 OrderDate = DateTime.Now,
                 TotalPrice = 0,
-                User = _userService.GetAllByIds(new List<int> { orderRequestDto.UserId }).Data[0] ,
+                Status = 0,
+                User = _userService.GetAllByIds(new List<int> { orderRequestDto.UserId }).Data[0],
                 IsDeleted = false
             };
-
             if(orderRequestDto.ProductIds.Count != 0)
             {
                 Order order = _orderDal.AddAndReturn(newOrder);
@@ -91,6 +95,7 @@ namespace Business.Concrete
             return new SuccessResult(Messages.OrderAdded);
         }
 
+        [LogAspect(typeof(DatabaseLogger))]
         [CacheRemoveAspect("IOrderService.Get")]
         [TransactionalOperation]
         public IResult Delete(int id)
@@ -149,6 +154,7 @@ namespace Business.Concrete
             return new SuccessDataResult<OrderResponseDto>(OrderResponseDto.Generate(_orderDal.Get(o => o.Id.Equals(orderId))), Messages.OrderListed);
         }
 
+        [LogAspect(typeof(DatabaseLogger))]
         [CacheRemoveAspect("IOrderService.Get")]
         [TransactionalOperation]
         public IDataResult<OrderResponseDto> Update(OrderRequestDto orderRequestDto)
@@ -188,13 +194,72 @@ namespace Business.Concrete
                         order.Products.Add(newProduct);
                         order.TotalPrice += product.UnitPrice * newProduct.ProductQuantity;
                     }
+
                 }
             }
-            order.Status = true;
-            
+
+            order.Status = orderRequestDto.Status;
+            _userService.UpdateBalance(order.TotalPrice);
             _orderDal.Update(order);
-            return new SuccessDataResult<OrderResponseDto>(OrderResponseDto.Generate(order),Messages.OrderUpdated);
-            
+            return new SuccessDataResult<OrderResponseDto>(OrderResponseDto.Generate(order), Messages.OrderUpdated);
+
+        }
+
+        [LogAspect(typeof(DatabaseLogger))]
+        [CacheRemoveAspect("IOrderService.Get")]
+        [TransactionalOperation]
+        public IDataResult<OrderResponseDto> UpdateStatus(OrderRequestDto orderRequestDto)
+        {
+            var result = BusinessRules.Check();
+
+            if (result.Count != 0)
+            {
+                return new ErrorDataResult<OrderResponseDto>(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
+            }
+            Order order = _orderDal.Get(o => o.Id.Equals(orderRequestDto.OrderId), includeProperties: "Products,Products.Product,Products.Product.Category,User");
+            order.OrderDate = DateTime.Now;
+            order.Status = orderRequestDto.Status;
+            _userService.UpdateBalance(order.TotalPrice);
+            _orderDal.Update(order);
+            return new SuccessDataResult<OrderResponseDto>(OrderResponseDto.Generate(order), Messages.OrderUpdated);
+
+        }
+
+        [LogAspect(typeof(DatabaseLogger))]
+        [CacheRemoveAspect("IOrderService.Get")]
+        [TransactionalOperation]
+        public IDataResult<OrderResponseDto> AddManualOrder(OrderRequestDto orderRequestDto)
+        {
+            var result = BusinessRules.Check();
+
+            if (result.Count != 0)
+            {
+                return new ErrorDataResult<OrderResponseDto>(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
+            }
+
+            Order order = new Order
+            {
+                OrderDate = DateTime.Now,
+                TotalPrice = 0,
+                Status = 1,
+                User = _userService.GetAllByIds(new List<int> { orderRequestDto.UserId }).Data[0],
+                IsDeleted = false
+            };
+            order.TotalPrice = orderRequestDto.TotalPrice;
+            _userService.UpdateBalanceByUserId(orderRequestDto.UserId, order.TotalPrice);
+            _orderDal.Add(order);
+            return new SuccessDataResult<OrderResponseDto>(Messages.OrderAdded);
+        }
+
+
+        private IResult CheckIfOrderProductsCount(OrderRequestDto orderRequestDto)
+        {
+            if(orderRequestDto.ProductIds.Count == 0)
+            {
+                return new ErrorResult(Messages.OrderProductsCountError);
+
+            }
+            return new SuccessResult();
         }
     }
 }

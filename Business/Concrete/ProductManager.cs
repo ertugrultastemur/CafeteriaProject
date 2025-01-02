@@ -1,14 +1,22 @@
 ﻿using Business.Abstract;
 using Business.BusinessAspects.Autofac;
 using Business.Constants;
+using Business.Utilities;
 using Core.Aspects.Autofac.Caching.Caching;
+using Core.Aspects.Autofac.Logging;
 using Core.Aspects.Autofac.Validation;
+using Core.CrossCuttingConcerns.Logging.Log4Net;
+using Core.CrossCuttingConcerns.Logging.Log4Net.Loggers;
+using Core.Dtos;
+using Core.Entities.Concrete;
 using Core.Utilities.Business;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
 using DataAccess.Concrete.EntityFramework;
 using Entity.Concrete;
 using Entity.Dtos;
+using log4net.Core;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,36 +31,41 @@ namespace Business.Concrete
 
         ICategoryService _categoryService;
 
+        IBranchService _branchService;
 
-
-        public ProductManager(IProductDal productDal, ICategoryService categoryService)
+        public ProductManager(IProductDal productDal, ICategoryService categoryService, IBranchService branchService)
         {
             _productDal = productDal;
             _categoryService = categoryService;
+            _branchService = branchService;
         }
 
+        [LogAspect(typeof(DatabaseLogger))]
         [SecuredOperation("product.add,admin")]
         //[ValidationAspect(typeof(ProductValidator))]
         [TransactionalOperation]
         [CacheRemoveAspect("IProductService.Get")]
-        public IResult Add(ProductRequestDto entity)
+        [CacheRemoveAspect("ICategoryService.Get")]
+        public IResult Add(ProductRequestDto entity, IFormFile image)
         {
+            UserDetailDto _user = UserDetailGetter.GetDetails();
+            Branch branch = _branchService.GetByUserId(_user.Id).Data;
             List<IResult> result = BusinessRules.Check(CheckIfCategoryNotFound(entity.CategoryId),
                 CheckIfProductCountOfCategoryCorrect(entity.CategoryId),
-                CheckIfProductNameExistsOfProductsCorrect(entity.ProductName),
+                CheckIfProductNameExistsOfProductsCorrect(branch.Id, entity.ProductName),
                 CheckIfCategoryCountExcededThanLimitCouldNotAddingProductsCorrect()
                 );
             if (result.Count != 0)
             {
                 return new ErrorResult(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
             }
-
             Product product = new Product();
             product.Name = entity.ProductName;
             product.Description = entity.ProductDescription;
             product.Category = _categoryService.GetAllByIds(new List<int> { entity.CategoryId }).Data[0];
-            product.UnitsInStock = entity.UnitsInStock;
             product.UnitPrice = entity.UnitPrice;
+            product.ImagePath = ImageSaver.SaveImage(image).Result;
+            product.Branch = branch;
             product.IsDeleted = false;
             _productDal.Add(product);
             return new SuccessResult(Messages.ProductAdded);
@@ -75,14 +88,18 @@ namespace Business.Concrete
             return new SuccessResult(Messages.ProductDeleted);
         }
         [CacheAspect]
+        [LogAspect(typeof(DatabaseLogger))]
         public IDataResult<List<ProductResponseDto>> GetAll()
         {
-            return new SuccessDataResult<List<ProductResponseDto>>(_productDal.GetAllAndDepends(includeProperties:"Category,Orders").ConvertAll(p => ProductResponseDto.Generate(p)), Messages.ProductsListed);
+            UserDetailDto _user = UserDetailGetter.GetDetails();
+            Branch branch = _branchService.GetByUserId(_user.Id).Data;
+
+            return new SuccessDataResult<List<ProductResponseDto>>(_productDal.GetAllAndDepends(p => p.Branch.Id == branch.Id, includeProperties:"Category,Orders").ConvertAll(p => ProductResponseDto.Generate(p)), Messages.ProductsListed);
         }
 
         [TransactionalOperation]
         [CacheRemoveAspect("IProductService.Get")]
-        public IDataResult<ProductResponseDto> Update(ProductRequestDto productRequestDto)
+        public IDataResult<ProductResponseDto> Update(ProductRequestDto productRequestDto, IFormFile image)
         {
             List<IResult> result = BusinessRules.Check();
 
@@ -90,24 +107,23 @@ namespace Business.Concrete
             {
                 return new ErrorDataResult<ProductResponseDto>(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
             }
+            Category category = _categoryService.GetAllByIds(new List<int> { productRequestDto.CategoryId }).Data[0];
             Product product = _productDal.Get(p => p.Id == productRequestDto.ProductId);
             product.Name = productRequestDto.ProductName;
+            product.Category = category;
+            product.UnitPrice = productRequestDto.UnitPrice;
             product.Description = productRequestDto.ProductDescription;
-            product.Orders.Clear();
-            /*List<Order> orders = _orderService.GetAllByIds(productRequestDto.OrderIds).Data;
-            orders.Select(order => new OrderProduct
-            {
-                OrderId = order.Id,
-                ProductId = product.Id,
-                ProductQuantity = productRequestDto.OrderIds.Count(oId => oId.Equals(order.Id))
-            }).ToList().ForEach(o => product.Orders.Add(o));*/
+            product.ImagePath = ImageSaver.SaveImage(image).Result;
             _productDal.Update(product);
             return new SuccessDataResult<ProductResponseDto>(ProductResponseDto.Generate(product), Messages.ProductUpdated);
         }
 
         public IDataResult<List<ProductResponseDto>> GetAllByCategoryId(int id)
         {
-            return new SuccessDataResult<List<ProductResponseDto>>(_productDal.GetAll(p => p.Category.Id == id).ConvertAll(p => ProductResponseDto.Generate(p)), Messages.ProductsListedByCategory);
+            UserDetailDto _user = UserDetailGetter.GetDetails();
+            Branch branch = _branchService.GetByUserId(_user.Id).Data;
+
+            return new SuccessDataResult<List<ProductResponseDto>>(_productDal.GetAll(p => p.Branch.Id ==branch.Id  && p.Category.Id == id).ConvertAll(p => ProductResponseDto.Generate(p)), Messages.ProductsListedByCategory);
         }
 
         public IDataResult<List<ProductDetailDto>> GetProductDetails()
@@ -165,11 +181,11 @@ namespace Business.Concrete
             return new SuccessResult();
         }
 
-        private IResult CheckIfProductNameExistsOfProductsCorrect(string productName)
+        private IResult CheckIfProductNameExistsOfProductsCorrect(int branchId, string productName)
         {
-            if (_productDal.GetAll(p => p.Name == productName).Any())
+            if (_productDal.GetAll(p => p.Branch.Id == branchId && p.Name == productName).Any())
             {
-                return new ErrorResult(Messages.ProductNameExistsOfProducctsError);
+                return new ErrorResult(Messages.ProductNameExistsOfProductsError);
             }
             return new SuccessResult();
         }

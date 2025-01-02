@@ -14,10 +14,8 @@ namespace Entity.Dtos
         public int CategoryId { get; set; }
         public string ProductName { get; set; }
         public string ProductDescription { get; set; }
-        public short UnitsInStock { get; set; }
         public decimal UnitPrice { get; set; }
-        public List<int> OrderIds { get; set; }
-
+        public int BranchId { get; set; }
 
 
         public static ProductRequestDto Generate(Product product)
@@ -28,9 +26,8 @@ namespace Entity.Dtos
                 CategoryId = product.Category.Id,
                 ProductName = product.Name,
                 ProductDescription = product.Description,
-                UnitsInStock = product.UnitsInStock,
                 UnitPrice = product.UnitPrice,
-                OrderIds = product.Orders.Select(x => x.OrderId).ToList(),
+                BranchId = product.BranchId
 
             };
         }
@@ -43,7 +40,6 @@ namespace Entity.Dtos
                 Description = productRequestDto.ProductDescription,
                 Name = productRequestDto.ProductName,
                 UnitPrice = productRequestDto.UnitPrice,
-                UnitsInStock= productRequestDto.UnitsInStock,
                 IsDeleted = false
             };
         }

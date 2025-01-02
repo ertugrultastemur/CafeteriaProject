@@ -21,7 +21,10 @@ builder.Services.AddControllers();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowOrigin",
-        builder => builder.WithOrigins("http://127.0.0.1:7041"));
+        builder => builder.WithOrigins("http://localhost:3000")  // React frontend'inizin adresi
+                          .AllowAnyMethod()
+                          .AllowAnyHeader()
+                          .AllowCredentials()); // Allow credentials if needed
 });
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 
@@ -42,6 +45,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.WebHost.UseUrls("http://*:7041");
+
 builder.Services.AddDependencyResolvers(new ICoreModule[] { new CoreModule() });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -54,14 +59,20 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+app.ConfigureCustomExceptionMiddleware();
 
-//app.UseCors();
+
+app.UseCors("AllowOrigin");
+app.UseCors();
 //app.UseHttpsRedirection();
-//app.UseRouting();
+app.UseRouting();
+
+
 
 app.UseAuthentication();
 app.UseAuthorization();

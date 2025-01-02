@@ -19,7 +19,7 @@ namespace WebApi.Controllers
         }
 
         [HttpPost("login")]
-        public ActionResult Login(SignInDto signInDto)
+        public ActionResult Login([FromBody]SignInDto signInDto)
         {
             var result = _authService.Login(signInDto);
 
@@ -69,6 +69,28 @@ namespace WebApi.Controllers
         public ActionResult UpdateUserRole(OperationClaimDto operationClaimDto)
         {
             var result = _authService.UpdateUserRoles(operationClaimDto);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result.Message);
+            }
+            return Ok(result);
+        }
+
+        [HttpPost("resetpassword")]
+        public ActionResult ResetPassword(ResetPasswordDto resetPasswordDto)
+        {
+            var result = _authService.ResetPassword(resetPasswordDto);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result.Message);
+            }
+            return Ok(result);
+        }
+
+        [HttpGet("getallroles")]
+        public ActionResult GetAllRoles()
+        {
+            var result = _authService.GetAllOperationClaims();
             if (!result.IsSuccess)
             {
                 return BadRequest(result.Message);

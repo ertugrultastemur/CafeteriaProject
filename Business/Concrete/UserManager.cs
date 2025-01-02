@@ -1,6 +1,10 @@
 ﻿using Business.Abstract;
 using Business.BusinessAspects.Autofac;
 using Business.Constants;
+using Business.Utilities;
+using Core.Aspects.Autofac.Caching.Caching;
+using Core.Aspects.Autofac.Logging;
+using Core.CrossCuttingConcerns.Logging.Log4Net.Loggers;
 using Core.Dtos;
 using Core.Entities.Concrete;
 using Core.Utilities.Business;
@@ -8,6 +12,8 @@ using Core.Utilities.Hashing;
 using Core.Utilities.JWT;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
+using Entity.Concrete;
+using Entity.Dtos;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
@@ -27,14 +33,18 @@ namespace Business.Concrete
 
         private IUserOperationClaimDal _userOperationClaimDal;
 
-        public UserManager(IUserDal userDal, IOperationClaimDal operationClaimDal, IRefreshTokenDal refreshTokenDal, IUserOperationClaimDal userOperationClaimDal)
+        private IBranchService _branchService;
+
+        public UserManager(IUserDal userDal, IOperationClaimDal operationClaimDal, IRefreshTokenDal refreshTokenDal, IUserOperationClaimDal userOperationClaimDal, IBranchService branchService)
         {
             _userDal = userDal;
             _operationClaimDal = operationClaimDal;
             _refreshTokenDal = refreshTokenDal;
             _userOperationClaimDal = userOperationClaimDal;
+            _branchService = branchService;
         }
 
+        [LogAspect(typeof(DatabaseLogger))]
         [TransactionalOperation]
         public IDataResult<UserDto> Add(UserDto userDto)
         {
@@ -57,11 +67,12 @@ namespace Business.Concrete
                 IsDeleted = false
             };
 
-            _userDal.Add(user);
+            User newUser = _userDal.AddAndReturn(user);
             
-            return new SuccessDataResult<UserDto>( Messages.UserAdded);
+            return new SuccessDataResult<UserDto>(UserDto.Generate(newUser), Messages.UserAdded);
         }
 
+        [LogAspect(typeof(DatabaseLogger))]
         [TransactionalOperation]
         public IDataResult<User> AddUser(User user)
         {
@@ -78,10 +89,11 @@ namespace Business.Concrete
                 Balance= user.Balance,
                 DepartmentId= user.DepartmentId        
             };
-            _userDal.Add(_user);
-            return new SuccessDataResult<User>( Messages.UserAdded);
+            User newUser = _userDal.AddAndReturn(_user);
+            return new SuccessDataResult<User>(newUser, Messages.UserAdded);
         }
 
+        [LogAspect(typeof(DatabaseLogger))]
         [TransactionalOperation]
         public IDataResult<UserResponseDto> Update(UserRequestDto userDto)
         {
@@ -117,12 +129,54 @@ namespace Business.Concrete
                 }
             }
             user.OperationClaims = newUserOperationClaims;
+            if(userDto.Password != "" && userDto.Password != null)
+            {
+                byte[] passwordHash, passwordSalt;
+                HashingHelper.CreatePasswordHash(userDto.Password, out passwordHash, out passwordSalt);
+                user.PasswordHash = passwordHash;
+                user.PasswordSalt = passwordSalt;
+            }
             _userDal.Update(user);
 
             return new SuccessDataResult<UserResponseDto>(UserResponseDto.Generate(user), Messages.UserUpdated);
         }
 
+        [LogAspect(typeof(DatabaseLogger))]
+        [TransactionalOperation]
+        public IDataResult<UserResponseDto> ResetPassword(ResetPasswordDto resetPasswordDto)
+        {
+            var result = BusinessRules.Check();
 
+            if (result.Count != 0)
+            {
+                return new ErrorDataResult<UserResponseDto>(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
+            }
+
+            User user = _userDal.Get(u => u.Id == resetPasswordDto.Id);
+            byte[] passwordHash, passwordSalt;
+            HashingHelper.CreatePasswordHash(resetPasswordDto.Password, out passwordHash, out passwordSalt);
+            user.PasswordHash = passwordHash;
+            user.PasswordSalt = passwordSalt;
+            _userDal.Update(user);
+            return new SuccessDataResult<UserResponseDto>(Messages.ResetPassword);
+        }
+
+        [LogAspect(typeof(DatabaseLogger))]
+        [TransactionalOperation]
+        public IResult UndoDelete(int id)
+        {
+            var result = BusinessRules.Check();
+
+            if (result.Count != 0)
+            {
+                return new ErrorDataResult<UserResponseDto>(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
+            }
+
+            User user = _userDal.Get(u => u.Id.Equals(id));
+            user.IsDeleted = false;
+            _userDal.Update(user);
+            return new SuccessResult(Messages.UserUndoDeleted);
+        }
 
         public IDataResult<RefreshToken> GetByRefreshToken(string refreshToken)
         {
@@ -160,13 +214,65 @@ namespace Business.Concrete
 
         public IDataResult<List<UserResponseDto>> GetAll()
         {
+            UserDetailDto _user = UserDetailGetter.GetDetails();
+            Branch branch = _branchService.GetByUserId(_user.Id).Data;
+            List<int> ids = new List<int>(); 
+            ids= branch.Departments.Select(d=>d.Id).ToList();
+
             List<IResult> result = BusinessRules.Check();
 
             if (result.Count != 0)
             {
                 return new ErrorDataResult<List<UserResponseDto>>( result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
             }
-            return new SuccessDataResult<List<UserResponseDto>>(_userDal.GetAllAndDepends(includeProperties: "OperationClaims").ConvertAll(u => UserResponseDto.Generate(u)), Messages.UsersListed);
+            return new SuccessDataResult<List<UserResponseDto>>( _userDal.GetAllAndDepends(u => ids.Contains(u.DepartmentId), includeProperties: "OperationClaims").ConvertAll(u => UserResponseDto.Generate(u)), Messages.UsersListed);
+        }
+
+        [LogAspect(typeof(DatabaseLogger))]
+        [TransactionalOperation]
+        public IResult UpdateBalance(decimal balance)
+        {
+            UserDetailDto _user = UserDetailGetter.GetDetails();
+            List<IResult> result = BusinessRules.Check();
+            if (result.Count != 0)
+            {
+                return new ErrorResult(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
+            }
+            User user = _userDal.Get(u => u.Id == _user.Id);
+            user.Balance -= balance;
+            _userDal.Update(user);
+            return new SuccessResult(Messages.BalanceUpdated);
+        }
+
+        [LogAspect(typeof(DatabaseLogger))]
+        [TransactionalOperation]
+        public IResult UpdateBalanceByUserId(int userId, decimal balance)
+        {
+            List<IResult> result = BusinessRules.Check();
+            if (result.Count != 0)
+            {
+                return new ErrorResult(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
+            }
+            User user = _userDal.Get(u => u.Id == userId);
+            user.Balance -= balance;
+            _userDal.Update(user);
+            return new SuccessResult(Messages.BalanceUpdated);
+        }
+
+        [LogAspect(typeof(DatabaseLogger))]
+        [TransactionalOperation]
+        public IResult AddBalance(UserRequestDto userRequestDto)
+        {
+
+            List<IResult> result = BusinessRules.Check(CheckIfBalanceCouldNotBiggerThanZero(userRequestDto));
+            if (result.Count != 0)
+            {
+                return new ErrorResult(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
+            }
+            User user = _userDal.Get(u => u.Id == userRequestDto.Id);
+            user.Balance += userRequestDto.Balance;
+            _userDal.Update(user);
+            return new SuccessResult(Messages.BalanceUpdated);
         }
 
 
@@ -193,6 +299,7 @@ namespace Business.Concrete
             return new SuccessDataResult<List<User>>(_userDal.GetAll().FindAll(u => ids.Contains(u.Id)), Messages.UsersListed);
         }
 
+
         public IResult Delete(int id)
         {
             List<IResult> result = BusinessRules.Check();
@@ -206,6 +313,18 @@ namespace Business.Concrete
             _userDal.Update(user);
 
             return new SuccessResult(Messages.UserDeleted);
+        }
+
+
+        private IResult CheckIfBalanceCouldNotBiggerThanZero(UserRequestDto userRequestDto)
+        {
+            User user = _userDal.Get(u => u.Id==userRequestDto.Id);
+
+            if (user.Balance > 0)
+            {
+                return new ErrorResult(Messages.BalanceBiggerThanZeroError);
+            }
+            return new SuccessResult();
         }
 
         private IResult CheckIfUserNameExistsOfUsersCorrect(string username)
@@ -234,7 +353,6 @@ namespace Business.Concrete
             }
             return new SuccessResult();
         }
-
 
     }
 }

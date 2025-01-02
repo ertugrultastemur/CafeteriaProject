@@ -33,18 +33,18 @@ namespace Core.Aspects.Autofac.Redis
         }
         public override void Intercept(IInvocation invocation)
         {
-                try 
-                { 
+            try 
+            { 
 
 
-                    invocation.SetArgumentValue(0, _database);
-                    invocation.Proceed();
+                invocation.SetArgumentValue(0, _database);
+                invocation.Proceed();
 
-                }
-                catch (Exception e)
-                {
-                    throw;
-                }
+            }
+            catch (System.Exception e)
+            {
+                throw;
+            }
         }
     }
 }

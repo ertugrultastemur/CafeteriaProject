@@ -18,6 +18,13 @@ namespace Core.Dtos
 
         public string Email { get; set; }
 
+        public decimal Balance { get; set; }
+
+        public int DepartmentId { get; set; }
+
+        public List<int> OperationClaimIds { get; set; }
+
+        public bool IsDeleted { get; set; }
 
         public static UserResponseDto Generate(User _user)
         {
@@ -27,6 +34,10 @@ namespace Core.Dtos
                 FirstName = _user.FirstName,
                 LastName = _user.LastName,
                 Email = _user.Email,
+                Balance = _user.Balance,
+                DepartmentId = _user.DepartmentId,
+                OperationClaimIds = _user.OperationClaims.Select(u => u.OperationClaimId).ToList() ?? new List<int>(),
+                IsDeleted = _user.IsDeleted
             };
         }
     }

@@ -17,7 +17,7 @@ namespace Business.Constants
         public static string ProductDeleted = "Ürün silindi.";
         public static string ProductAdded = "Ürün eklendi.";
         public static string ProductCountOfCategoryError = "Bir kategoride en fazla 15 ürün olabilir.";
-        public static string ProductNameExistsOfProducctsError = "Aynı isimle en fazla 1 ürün olabilir.";
+        public static string ProductNameExistsOfProductsError = "Aynı isimle bir şubede en fazla 1 ürün olabilir.";
         public static string CategoryCountExcededThanLimitCouldNotAddingProductsError = "Kategori sayısı 15'den fazla ise ürün eklenemez.";
         public static string CategoriesListed = "Kategoriler getirildi.";
         public static string CategoryListed = "Kategori getirildi.";
@@ -27,7 +27,7 @@ namespace Business.Constants
         public static string UserSignUpSuccessfully = "Kullanıcı başarıyla kayıt oldu.";
         public static string CategoryNotFound = "Kategori bulunamadı.";
 
-        public static string OrderAdded = "Sipariş eklendi.";
+        public static string OrderAdded = "Sipariş başarılı.";
         public static string CategoryNullOrExists = "Böyle bir kategori bulunuyor.";
         public static string CategoryNotExists = "Böyle bir kategori bulunmuyor.";
 
@@ -76,8 +76,21 @@ namespace Business.Constants
         public static string OrdersListed = "Siparişler listelendi.";
         public static string OrderUpdated = "Sipariş güncellendi.";
 
-        public static string RefreshTokenCreated { get; internal set; }
-        public static string OperationClaimAdded { get; internal set; }
-        public static string OperationClaimAlreadyExists { get; internal set; }
+        public static string RefreshTokenCreated = "Refresh Token oluşturuldu.";
+        public static string OperationClaimAdded = "Rol eklendi.";
+        public static string OperationClaimAlreadyExists = "Bu rol zaten mevcut.";
+        public static string OperationClaimListed = "Roller listelendi.";
+        public static string ResetPassword = "Kullanıcı tekrar aktif.";
+        public static string OrderProductsCountError = "En az 1 ürün eklemelisiniz.";
+
+        public static string UserUndoDeleted = "Kullanıcı tekar aktif edildi.";
+
+        public static string BalanceInsufficient = "Bakiye yetersiz.";
+
+        public static string BalanceUpdated = "Bakiye güncellendi.";
+        public static string BalanceBiggerThanZeroError = "Borç 0'dan yüksek olamaz.";
+
+        public static string ProductInsufficientUnitsInStockError = "Stok miktarı yetersiz.";
+        public static string ProductStockUpdated = "Ürün stoğu güncellendi.";
     }
 }

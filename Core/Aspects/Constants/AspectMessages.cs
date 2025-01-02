@@ -9,5 +9,7 @@ namespace Core.Aspects.Constants
     public class AspectMessages
     {
         public static string WrongValidationType =  "Böyle bir doğrulama tipi bulunmamaktadır.";
+
+        public static string? WrongLoggerType { get; internal set; }
     }
 }

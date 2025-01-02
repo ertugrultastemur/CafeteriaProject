@@ -1,4 +1,5 @@
 ﻿using Business.Abstract;
+using Business.BusinessAspects.Autofac;
 using Business.Constants;
 using Core.Aspects.Autofac.Performance;
 using Core.Dtos;
@@ -81,6 +82,7 @@ namespace Business.Concrete
             return new SuccessDataResult<TokenResponseDto>(new TokenResponseDto { AccessToken=accessToken.Data.Token, RefreshToken=refreshToken.Data.Token}, Messages.UserSignInSuccessfully);
         }
 
+        [TransactionalOperation]
         public IDataResult<TokenResponseDto> Register(SignUpDto signUpDto)
         {
             byte[] passwordHash, passwordSalt;
@@ -97,7 +99,7 @@ namespace Business.Concrete
                 Balance = 0,
             };
 
-            _userService.Add(user);
+            user = _userService.Add(user).Data;
             var accessToken = CreateAccessToken(UserDto.Generate(user));
             var refreshToken = CreateRefreshToken(UserDto.Generate(user));
             if (accessToken == null || refreshToken == null || !accessToken.IsSuccess || !refreshToken.IsSuccess) 
@@ -205,6 +207,31 @@ namespace Business.Concrete
             });
         }
 
+        [TransactionalOperation]
+        public IDataResult<UserResponseDto> ResetPassword(ResetPasswordDto resetPasswordDto)
+        {
+            var result = BusinessRules.Check();
+
+            if (result.Count != 0)
+            {
+                return new ErrorDataResult<UserResponseDto>(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
+            }
+
+            return new SuccessDataResult<UserResponseDto>(_userService.ResetPassword(resetPasswordDto).Message);
+        }
+
+        public IDataResult<List<OperationClaimResponseDto>> GetAllOperationClaims()
+        {
+            var result = BusinessRules.Check();
+
+            if (result.Count != 0)
+            {
+                return new ErrorDataResult<List<OperationClaimResponseDto>>(result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
+            }
+
+            return new SuccessDataResult<List<OperationClaimResponseDto>>(_operationClaimDal.GetAll().ConvertAll(op => OperationClaimResponseDto.Generate(op)), Messages.OperationClaimListed) ;
+        }
+
         public IResult CheckIfOperationClaimAlreadyExists(OperationClaimDto operationClaimDto)
         {
            /* UserResponseDto userResponse = _userService.GetById(operationClaimDto.UserId).Data;
@@ -223,5 +250,6 @@ namespace Business.Concrete
             }
             return new SuccessResult();
         }
+
     }
 }

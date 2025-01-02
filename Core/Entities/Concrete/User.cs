@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+
 namespace Core.Entities.Concrete
 {
     public class User : IEntity
@@ -22,11 +23,11 @@ namespace Core.Entities.Concrete
 
         public Byte[] PasswordSalt { get; set; }
 
-        public ICollection<UserOperationClaim> OperationClaims { get; } = new List<UserOperationClaim>();
+        public ICollection<UserOperationClaim> OperationClaims { get; set; } = new List<UserOperationClaim>();
 
         public int DepartmentId { get; set; }
 
-        public double Balance { get; set; }
+        public decimal Balance { get; set; }
 
         public bool IsDeleted { get; set; }
     }

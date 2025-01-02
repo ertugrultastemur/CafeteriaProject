@@ -3,6 +3,7 @@ using Business.BusinessAspects.Autofac;
 using Business.Constants;
 using Business.Utilities;
 using Core.Aspects.Autofac.Caching.Caching;
+using Core.Dtos;
 using Core.Entities.Concrete;
 using Core.Utilities.Business;
 using Core.Utilities.Results;
@@ -76,7 +77,7 @@ namespace Business.Concrete
             {
                 return new ErrorDataResult<List<MunicipalityResponseDto>>( result.Select(r => r.Message).Aggregate((current, next) => current + " && " + next));
             }
-            List<Municipality> municipalities = _municipalityDal.GetAllAndDepends(includeProperties: "Branches");
+            List<Municipality> municipalities = _municipalityDal.GetAllAndDepends( includeProperties: "Branches,Branches.Departments");
             return new SuccessDataResult<List<MunicipalityResponseDto>>(municipalities.ConvertAll(m => MunicipalityResponseDto.Generate(m)), Messages.MunicipalitiesListed);
         }
 

@@ -14,7 +14,7 @@ namespace Core.Dtos
 
         public int DepartmentId { get; set; }
 
-        public double Balance { get; set; }
+        public decimal Balance { get; set; }
 
         public string FirstName { get; set; }
 
@@ -24,7 +24,7 @@ namespace Core.Dtos
 
         public List<int> OperationClaimIds { get; set; }
 
-
+        public string? Password { get; set; }
 
         public static UserRequestDto Generate(User _user)
         {
@@ -35,7 +35,8 @@ namespace Core.Dtos
                 LastName = _user.LastName,
                 Balance = _user.Balance,
                 Email = _user.Email,
-                DepartmentId = _user.DepartmentId
+                DepartmentId = _user.DepartmentId,
+                OperationClaimIds = _user.OperationClaims.Select(oc => oc.OperationClaimId).ToList()
             };
         }
     }
